@@ -1,0 +1,42 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { Configuration, OpenAIApi } from 'openai';
+import twilio from 'twilio';
+
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const openai = new OpenAIApi(new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+}));
+
+const client = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
+
+app.post('/api/new-bot', async (req, res) => {
+  const { businessName, ownerName, whatsappNumber, openingHours } = req.body;
+
+  const welcomeMessage = `¡Hola ${ownerName}! Tu chatbot para ${businessName} ha sido creado. Atendemos en el horario: ${openingHours}`;
+
+  try {
+    await client.messages.create({
+      from: `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`,
+      to: `whatsapp:${whatsappNumber}`,
+      body: welcomeMessage
+    });
+
+    res.json({ success: true, message: "Mensaje enviado correctamente" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Error enviando mensaje" });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor iniciado en puerto ${PORT}`));
