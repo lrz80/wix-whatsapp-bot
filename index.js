@@ -20,10 +20,10 @@ const client = twilio(
 );
 
 app.post('/api/new-bot', async (req, res) => {
-  try {
-    const { businessName, ownerName, whatsappNumber, openingHours } = req.body;
+  console.log("Recibido en /api/new-bot:", req.body);
 
-    console.log("Datos recibidos:", req.body);
+  return res.send("✅ Servidor recibió la petición y respondió correctamente");
+});
 
     if (!businessName || !ownerName || !whatsappNumber || !openingHours) {
       return res.status(400).send("ERROR: Datos incompletos");
