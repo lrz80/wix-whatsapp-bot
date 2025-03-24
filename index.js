@@ -56,10 +56,10 @@ app.post('/api/new-bot', async (req, res) => {
       body: welcomeMessage
     });
 
-    res.json({ success: true, message: "Mensaje enviado correctamente" });
+    res.send("Mensaje enviado correctamente");
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Error enviando mensaje" });
+    res.status(500).send("Error enviando mensaje");
   }
 });
 
