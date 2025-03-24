@@ -20,29 +20,23 @@ const client = twilio(
 );
 
 app.post('/api/new-bot', async (req, res) => {
-  console.log("Recibido en /api/new-bot:", req.body);
+  try {
+    console.log("Recibido en /api/new-bot:", req.body);
 
-  return res.send("✅ Servidor recibió la petición y respondió correctamente");
-});
+    const { businessName, ownerName, whatsappNumber, openingHours } = req.body;
 
     if (!businessName || !ownerName || !whatsappNumber || !openingHours) {
-      return res.status(400).send("ERROR: Datos incompletos");
+      res.status(400).send("ERROR: Datos incompletos");
+      return;
     }
 
-    const welcomeMessage = `¡Hola ${ownerName}! Tu chatbot para ${businessName} ha sido creado. Atendemos en el horario: ${openingHours}`;
-
-    await client.messages.create({
-      from: `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`,
-      to: `whatsapp:${whatsappNumber}`,
-      body: welcomeMessage
-    });
-
-    res.send("OK: Mensaje enviado correctamente");
+    res.send("✅ Servidor recibió la petición y respondió correctamente");
   } catch (err) {
-    console.error("ERROR en /api/new-bot:", err);
-    res.status(500).send("ERROR: No se pudo enviar el mensaje");
+    console.error("Error:", err);
+    res.status(500).send("Error en el servidor");
   }
 });
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor iniciado en puerto ${PORT}`));
