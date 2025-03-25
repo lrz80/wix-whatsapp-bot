@@ -31,38 +31,42 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('🛑 Unhandled Rejection:', reason);
 });
 
-app.post('/api/new-bot', async (req, res) => {
+app.post('/webhook', async (req, res) => {
+  const from = req.body.From; // número que escribió
+  const message = req.body.Body; // mensaje que envió
+
+  console.log("📩 Mensaje recibido:", message);
+
+  // Aquí pondríamos lógica para identificar qué negocio es
+  const businessInfo = {
+    name: "Heladería Ana",
+    horario: "Lunes a domingo de 10am a 10pm",
+    servicios: "helados, malteadas, postres"
+  };
+
+  // Prompt para que OpenAI responda como si fuera el negocio
+  const prompt = `Eres el chatbot del negocio "${businessInfo.name}". 
+  Atiendes con amabilidad y conoces el horario: ${businessInfo.horario}, 
+  y los servicios: ${businessInfo.servicios}. Responde este mensaje de cliente:\n"${message}"`;
+
   try {
-    const { businessName, ownerName, whatsappNumber, openingHours } = req.body;
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    });
 
-    if (!businessName || !ownerName || !whatsappNumber || !openingHours) {
-      console.warn("⚠️ Faltan datos:", req.body);
-      return res.status(400).send("❌ Faltan datos obligatorios");
-    }
+    const reply = completion.data.choices[0].message.content;
 
-    console.log("📥 Datos recibidos:", req.body);
-    console.log("📤 ENVIANDO DESDE:", process.env.TWILIO_PHONE_NUMBER);
-    console.log("📬 ENVIANDO A:", `whatsapp:${whatsappNumber}`);
+    await client.messages.create({
+      from: `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`,
+      to: from,
+      body: reply
+    });
 
-    const welcomeMessage = `👋 ¡Hola ${ownerName}! Tu chatbot para *${businessName}* ha sido creado. Atendemos de ${openingHours}.`;
-
-    try {
-      const response = await client.messages.create({
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: `whatsapp:${whatsappNumber}`,
-        body: welcomeMessage
-      });
-
-      console.log("📨 Mensaje enviado. SID:", response.sid);
-      res.send("✅ Bot creado y mensaje enviado correctamente");
-    } catch (twilioError) {
-      console.error("🚨 Error al enviar mensaje con Twilio:", twilioError);
-      res.status(500).send("❌ Falló el envío con Twilio");
-    }
-
+    res.sendStatus(200);
   } catch (err) {
-    console.error("❌ ERROR en /api/new-bot:", err);
-    res.status(500).send("❌ Error interno en el servidor");
+    console.error("❌ Error en webhook:", err);
+    res.sendStatus(500);
   }
 });
 
