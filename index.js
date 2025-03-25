@@ -27,22 +27,24 @@ app.post('/api/new-bot', async (req, res) => {
       return res.status(400).send("❌ Faltan datos obligatorios");
     }
 
-    console.log("Datos recibidos:", req.body);
+    console.log("📥 Datos recibidos:", req.body);
+    console.log("📤 ENVIANDO DESDE:", process.env.TWILIO_PHONE_NUMBER);
+    console.log("📬 ENVIANDO A:", `whatsapp:${whatsappNumber}`);
 
-    const welcomeMessage = `¡Hola ${ownerName}! Tu chatbot para ${businessName} ha sido creado. Atendemos de ${openingHours}`;
+    const welcomeMessage = `👋 ¡Hola ${ownerName}! Tu chatbot para *${businessName}* ha sido creado y estará activo en el horario: ${openingHours}.`;
 
     await client.messages.create({
-      from: `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`,
-      to: `whatsapp:${whatsappNumber}`,
+      from: process.env.TWILIO_PHONE_NUMBER,           // debe ser whatsapp:+14155238886
+      to: `whatsapp:${whatsappNumber}`,                // construimos aquí
       body: welcomeMessage
     });
 
-    return res.send("✅ Bot creado y mensaje enviado por WhatsApp");
+    res.send("✅ Bot creado y mensaje enviado correctamente");
   } catch (err) {
-    console.error("ERROR:", err);
-    return res.status(500).send("❌ Error interno al enviar el mensaje");
+    console.error("❌ ERROR en /api/new-bot:", err);
+    res.status(500).send("❌ Error interno al enviar el mensaje");
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor iniciado en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor iniciado en puerto ${PORT}`));
