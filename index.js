@@ -3,6 +3,19 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import twilio from 'twilio';
+import pkg from 'pg';
+
+const { Pool } = pkg;
+
+const db = new Pool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
+  ssl: { rejectUnauthorized: false }
+});
+
 
 dotenv.config();
 
@@ -45,16 +58,32 @@ app.post('/webhook', async (req, res) => {
   }  
 
   // Aquí pondríamos lógica para identificar qué negocio es
-  const businessInfo = {
-    name: "Heladería Ana",
-    horario: "Lunes a domingo de 10am a 10pm",
-    servicios: "helados, malteadas, postres"
-  };
+  const number = from.replace("whatsapp:", "");
+
+const result = await db.query(
+  'SELECT * FROM customers WHERE whatsapp = $1',
+  [number]
+);
+
+if (result.rows.length === 0) {
+  await client.messages.create({
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: from,
+    body: "¡Hola! Este número no está registrado. Por favor crea tu bot en la página web."
+  });
+  return res.sendStatus(200);
+}
+
+const customer = result.rows[0];
 
   // Prompt para que OpenAI responda como si fuera el negocio
-  const prompt = `Eres el chatbot del negocio "${businessInfo.name}". 
-  Atiendes con amabilidad y conoces el horario: ${businessInfo.horario}, 
-  y los servicios: ${businessInfo.servicios}. Responde este mensaje de cliente:\n"${message}"`;
+  const prompt = `
+Eres el chatbot del negocio "${customer.business_name}". 
+Atiendes con amabilidad, usando respuestas breves y claras.
+Horario: ${customer.opening_hours}.
+Servicios ofrecidos: ${customer.services}.
+Responde al cliente: "${message}"
+`;
 
   try {
     const completion = await openai.chat.completions.create({
