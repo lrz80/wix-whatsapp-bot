@@ -45,64 +45,31 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('🛑 Unhandled Rejection:', reason);
 });
 
-app.post('/webhook', async (req, res) => {
-  const from = req.body.From; // número que escribió
-  const message = req.body.Body; // mensaje que envió
-
-  console.log("📩 Mensaje recibido:", message);
-  console.log("🔍 De:", from);
-
-  if (!from || !from.startsWith("whatsapp:")) {
-    console.error("❌ Número de origen inválido:", from);
-    return res.status(400).send("Número inválido");
-  }  
-
-  // Aquí pondríamos lógica para identificar qué negocio es
-  const number = from.replace("whatsapp:", "");
-
-const result = await db.query(
-  'SELECT * FROM customers WHERE whatsapp = $1',
-  [number]
-);
-
-if (result.rows.length === 0) {
-  await client.messages.create({
-    from: process.env.TWILIO_PHONE_NUMBER,
-    to: from,
-    body: "¡Hola! Este número no está registrado. Por favor crea tu bot en la página web."
-  });
-  return res.sendStatus(200);
-}
-
-const customer = result.rows[0];
-
-  // Prompt para que OpenAI responda como si fuera el negocio
-  const prompt = `
-Eres el chatbot del negocio "${customer.business_name}". 
-Atiendes con amabilidad, usando respuestas breves y claras.
-Horario: ${customer.opening_hours}.
-Servicios ofrecidos: ${customer.services}.
-Responde al cliente: "${message}"
-`;
+app.post('/api/new-bot', async (req, res) => {
+  const { businessName, ownerName, whatsappNumber, openingHours, services } = req.body;
 
   try {
-    const completion = await openai.chat.completions.create({
-  model: "gpt-3.5-turbo",
-  messages: [{ role: "user", content: prompt }],
-});
-
-    const reply = completion.choices[0].message.content;
+    await db.query(
+      `INSERT INTO customers (whatsapp, business_name, owner_name, opening_hours, services)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (whatsapp) DO UPDATE SET
+         business_name = EXCLUDED.business_name,
+         owner_name = EXCLUDED.owner_name,
+         opening_hours = EXCLUDED.opening_hours,
+         services = EXCLUDED.services`,
+      [whatsappNumber, businessName, ownerName, openingHours, services]
+    );
 
     await client.messages.create({
-  from: process.env.TWILIO_PHONE_NUMBER, // ya incluye "whatsapp:"
-  to: from, // el número que escribió
-  body: reply
-});
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: `whatsapp:${whatsappNumber}`,
+      body: `¡Hola ${ownerName}! Tu chatbot para ${businessName} ha sido creado.`
+    });
 
-    res.sendStatus(200);
+    res.json({ success: true });
   } catch (err) {
-    console.error("❌ Error en webhook:", err);
-    res.sendStatus(500);
+    console.error("❌ Error al guardar en DB:", err);
+    res.status(500).json({ success: false });
   }
 });
 
