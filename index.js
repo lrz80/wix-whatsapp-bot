@@ -37,6 +37,12 @@ app.post('/webhook', async (req, res) => {
   const message = req.body.Body; // mensaje que envió
 
   console.log("📩 Mensaje recibido:", message);
+  console.log("🔍 De:", from);
+
+  if (!from || !from.startsWith("whatsapp:")) {
+    console.error("❌ Número de origen inválido:", from);
+    return res.status(400).send("Número inválido");
+  }  
 
   // Aquí pondríamos lógica para identificar qué negocio es
   const businessInfo = {
