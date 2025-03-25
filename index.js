@@ -65,10 +65,10 @@ app.post('/webhook', async (req, res) => {
     const reply = completion.choices[0].message.content;
 
     await client.messages.create({
-      from: `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`,
-      to: from,
-      body: reply
-    });
+  from: process.env.TWILIO_PHONE_NUMBER, // ya incluye "whatsapp:"
+  to: from, // el número que escribió
+  body: reply
+});
 
     res.sendStatus(200);
   } catch (err) {
