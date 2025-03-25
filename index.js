@@ -33,11 +33,17 @@ app.post('/api/new-bot', async (req, res) => {
 
     const welcomeMessage = `👋 ¡Hola ${ownerName}! Tu chatbot para *${businessName}* ha sido creado y estará activo en el horario: ${openingHours}.`;
 
-    await client.messages.create({
-      from: process.env.TWILIO_PHONE_NUMBER,           // debe ser whatsapp:+14155238886
-      to: `whatsapp:${whatsappNumber}`,                // construimos aquí
-      body: welcomeMessage
-    });
+    try {
+  const response = await client.messages.create({
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: `whatsapp:${whatsappNumber}`,
+    body: welcomeMessage
+  });
+  console.log("📨 Respuesta Twilio:", response.sid);
+} catch (twilioError) {
+  console.error("🚨 Error al enviar mensaje con Twilio:", twilioError);
+  return res.status(500).send("❌ Falló el envío con Twilio");
+}
 
     res.send("✅ Bot creado y mensaje enviado correctamente");
   } catch (err) {
