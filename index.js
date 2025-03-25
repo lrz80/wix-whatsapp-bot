@@ -50,12 +50,12 @@ app.post('/webhook', async (req, res) => {
   y los servicios: ${businessInfo.servicios}. Responde este mensaje de cliente:\n"${message}"`;
 
   try {
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-    });
+    const completion = await openai.chat.completions.create({
+  model: "gpt-3.5-turbo",
+  messages: [{ role: "user", content: prompt }],
+});
 
-    const reply = completion.data.choices[0].message.content;
+    const reply = completion.choices[0].message.content;
 
     await client.messages.create({
       from: `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`,
