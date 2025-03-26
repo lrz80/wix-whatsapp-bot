@@ -4,10 +4,10 @@ import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import twilio from 'twilio';
 import pkg from 'pg';
-import pkg from 'twilio';
-const { twiml: TwilioTwiml } = pkg;
+import twilioPkg from 'twilio';
 
 const { Pool } = pkg;
+const { twiml: TwilioTwiml } = twilioPkg;
 
 const db = new Pool({
   host: process.env.DB_HOST,
