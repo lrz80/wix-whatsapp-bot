@@ -46,34 +46,52 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 app.post('/api/new-bot', async (req, res) => {
-  const { businessName, ownerName, whatsappNumber, openingHours, services } = req.body;
+  const { businessName, ownerName, whatsappNumber, openingHours, services, twilioNumber } = req.body;
+
+  // Validación manual
+  if (!twilioNumber) {
+    return res.status(400).json({ error: 'twilio_number es obligatorio' });
+  }
 
   try {
-    const existing = await db.query(
+    const existingByPhone = await db.query(
       'SELECT * FROM clients WHERE whatsapp = $1',
       [whatsappNumber]
     );
 
-    if (existing.rows.length > 0) {
+    const existingTwilio = await db.query(
+      'SELECT * FROM clients WHERE twilio_number = $1',
+      [twilioNumber]
+    );
+
+    if (
+      existingTwilio.rows.length > 0 &&
+      existingTwilio.rows[0].whatsapp !== whatsappNumber
+    ) {
+      return res.status(400).json({ error: 'Este número de Twilio ya está asignado a otro cliente.' });
+    }
+
+    if (existingByPhone.rows.length > 0) {
       await db.query(
         `UPDATE clients SET
           business_name = $1,
           owner_name = $2,
           opening_hours = $3,
-          services = $4
-        WHERE whatsapp = $5`,
-        [businessName, ownerName, openingHours, services, whatsappNumber]
+          services = $4,
+          twilio_number = $5
+        WHERE whatsapp = $6`,
+        [businessName, ownerName, openingHours, services, twilioNumber, whatsappNumber]
       );
     } else {
       await db.query(
-        `INSERT INTO clients (whatsapp, business_name, owner_name, opening_hours, services)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [whatsappNumber, businessName, ownerName, openingHours, services]
+        `INSERT INTO clients (whatsapp, business_name, owner_name, opening_hours, services, twilio_number)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [whatsappNumber, businessName, ownerName, openingHours, services, twilioNumber]
       );
     }
 
     await client.messages.create({
-      from: process.env.TWILIO_PHONE_NUMBER,
+      from: twilioNumber,
       to: `whatsapp:${whatsappNumber}`,
       body: `¡Hola ${ownerName}! Tu chatbot para ${businessName} ha sido creado.`
     });
@@ -86,30 +104,30 @@ app.post('/api/new-bot', async (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
-  const from = req.body.From; // número que escribió
-  const message = req.body.Body; // mensaje que envió
+  const from = req.body.From; // quién escribe
+  const to = req.body.To;     // a qué número escribieron
+  const message = req.body.Body;
 
-  console.log("📩 Mensaje recibido:", message);
-  console.log("🔍 De:", from);
+  console.log("📩 Mensaje:", message);
+  console.log("📲 De:", from);
+  console.log("📥 A:", to);
 
-  if (!from || !from.startsWith("whatsapp:")) {
-    console.error("❌ Número de origen inválido:", from);
-    return res.status(400).send("Número inválido");
+  if (!to || !to.startsWith("whatsapp:")) {
+    console.error("❌ Número receptor inválido:", to);
+    return res.status(400).send("Número destino inválido");
   }
-
-  const number = from.replace("whatsapp:", "");
 
   try {
     const result = await db.query(
-      'SELECT * FROM clients WHERE whatsapp = $1',
-      [number]
+      'SELECT * FROM clients WHERE twilio_number = $1',
+      [to]
     );
 
     if (result.rows.length === 0) {
       await client.messages.create({
-        from: process.env.TWILIO_PHONE_NUMBER,
+        from: to,
         to: from,
-        body: "¡Hola! Este número no está registrado. Por favor crea tu bot en la página web."
+        body: "Este número aún no está configurado con ningún negocio. Contáctanos para activarlo."
       });
       return res.sendStatus(200);
     }
@@ -117,11 +135,11 @@ app.post('/webhook', async (req, res) => {
     const customer = result.rows[0];
 
     const prompt = `
-      Eres el chatbot del negocio "${customer.business_name}". 
-      Atiendes con amabilidad, usando respuestas breves y claras.
-      Horario: ${customer.opening_hours}.
-      Servicios ofrecidos: ${customer.services}.
-      Responde al cliente: "${message}"
+Eres el chatbot del negocio "${customer.business_name}". 
+Atiendes con amabilidad, usando respuestas breves y claras.
+Horario: ${customer.opening_hours}.
+Servicios ofrecidos: ${customer.services}.
+Responde al cliente: "${message}"
     `;
 
     const completion = await openai.chat.completions.create({
@@ -132,14 +150,14 @@ app.post('/webhook', async (req, res) => {
     const reply = completion.choices[0].message.content;
 
     await client.messages.create({
-      from: process.env.TWILIO_PHONE_NUMBER,
+      from: to,
       to: from,
       body: reply
     });
 
     res.sendStatus(200);
   } catch (err) {
-    console.error("❌ Error en webhook:", err);
+    console.error("❌ Error en webhook dinámico:", err);
     res.sendStatus(500);
   }
 });
