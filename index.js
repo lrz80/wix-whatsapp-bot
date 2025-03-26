@@ -95,103 +95,90 @@ app.post('/webhook', async (req, res) => {
   const to = req.body.To;
   const message = req.body.Body?.trim();
 
+  console.log("📬 Webhook activado con ID:", req.body.MessageSid);
   console.log("📩 Mensaje:", message);
   console.log("📲 De:", from);
   console.log("📥 A:", to);
 
-  // Validación básica
-  if (!to || !to.startsWith("whatsapp:")) {
-    console.error("❌ Número receptor inválido:", to);
-    return res.status(400).send("Número destino inválido");
-  }
+  // Responder de inmediato a Twilio
+  res.sendStatus(200);
 
-  try {
-    const result = await db.query(
-      'SELECT * FROM clients WHERE twilio_number = $1',
-      [to]
-    );
+  // Procesamiento diferido
+  setTimeout(async () => {
+    try {
+      if (!to || !to.startsWith("whatsapp:")) {
+        console.error("❌ Número receptor inválido:", to);
+        return;
+      }
 
-    if (result.rows.length === 0) {
-      console.log("⚠️ Número aún no vinculado a ningún cliente");
+      const result = await db.query(
+        'SELECT * FROM clients WHERE twilio_number = $1',
+        [to]
+      );
+
+      if (result.rows.length === 0) {
+        await client.messages.create({
+          from: to,
+          to: from,
+          body: "Este número aún no está configurado con ningún negocio. Contáctanos para activarlo."
+        });
+        return;
+      }
+
+      const customer = result.rows[0];
+
+      const prompt = `
+      Eres el asistente virtual de "${customer.business_name}", un negocio que ofrece: ${customer.services}.
+      Tu tarea es responder preguntas de clientes de forma educada, profesional y útil.
+
+      ⚠️ IMPORTANTE:
+      - Solo responde **una vez**
+      - No saludes dos veces
+      - No digas "OK" ni "Hola" innecesariamente
+      - No cierres con "¿En qué más puedo ayudarte?" a menos que sea natural
+
+      Horario del negocio: ${customer.opening_hours}.
+
+      Mensaje del cliente:
+      "${message}"
+
+      Responde como si fueras parte del equipo del negocio, en un solo mensaje claro y directo.
+      `;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }]
+      });
+
+      let reply = completion.choices[0].message.content.trim();
+
+      // Limpiar respuesta
+      const replyParts = reply.split(/\n{2,}/);
+      reply = replyParts[0].trim();
+      reply = reply.replace(/^ok[\.\!\s\n]*/i, "");
+      reply = reply.replace(/^hola[\.\!\s\n]*/i, "");
+      reply = reply.replace(/^\s*\n+/, "");
+      reply = reply.trim();
+
+      if (!reply || reply.length < 3) {
+        console.warn("⚠️ Respuesta vacía o inválida");
+        return;
+      }
+
+      console.log("🧾 Enviando solo esto a Twilio:", reply);
+
       await client.messages.create({
         from: to,
         to: from,
-        body: "Este número aún no está configurado con ningún negocio. Contáctanos para activarlo."
+        body: reply
       });
-      return res.sendStatus(200);
+
+    } catch (err) {
+      console.error("❌ Error procesando mensaje (diferido):", err);
     }
-
-    const customer = result.rows[0];
-
-    // Control anti-mensajes tipo "OK"
-    if (message.toLowerCase() === "ok" || message.toLowerCase() === "hola") {
-      console.log("⚠️ Ignorado: mensaje de saludo o confirmación trivial");
-      return res.sendStatus(200);
-    }
-
-    const prompt = `
-    Eres el asistente virtual de "${customer.business_name}", un negocio que ofrece: ${customer.services}.
-    Tu tarea es responder preguntas de clientes de forma educada, profesional y útil.
-
-    ⚠️ IMPORTANTE:
-    - Solo responde **una vez**
-    - No saludes dos veces
-    - No digas "OK" ni "Hola" innecesariamente
-    - No cierres con "¿En qué más puedo ayudarte?" a menos que sea natural
-
-    Horario del negocio: ${customer.opening_hours}.
-
-    Mensaje del cliente:
-    "${message}"
-
-    Responde como si fueras parte del equipo del negocio, en un solo mensaje claro y directo.
-    `;
-
-    console.log("🧠 Enviando prompt a OpenAI...");
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }]
-    });
-
-    let reply = completion.choices[0].message.content.trim();
-
-    // ⚠️ Dividir respuesta en partes si hay doble salto de línea
-    const replyParts = reply.split(/\n{2,}/);
-    reply = replyParts[0].trim();  // usar solo la primera parte
-
-    // Limpiar respuestas que empiezan con OK o Hola
-    reply = reply.replace(/^ok[\.\!\s\n]*/i, "");
-    reply = reply.replace(/^hola[\.\!\s\n]*/i, "");
-    reply = reply.trim();
-
-    // Evitar mensajes vacíos
-    if (!reply || reply.length < 3) {
-      console.warn("⚠️ OpenAI devolvió una respuesta vacía o inválida");
-      return res.sendStatus(200);
-    }
-    await client.messages.create({
-      from: to,
-      to: from,
-      body: reply
-    });
-    console.log("✅ Respuesta enviada con éxito");
-    res.sendStatus(200);
-
-  } catch (err) {
-    console.error("❌ Error en webhook dinámico:", err);
-    res.sendStatus(500);
-  }
+  }, 0);
 });
-app.get('/api/clients', async (req, res) => {
-  try {
-    const result = await db.query('SELECT * FROM clients ORDER BY id DESC');
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error al obtener clientes:", err);
-    res.status(500).json({ error: 'Error al obtener clientes' });
-  }
-});
+
 app.post('/api/assign-number', async (req, res) => {
   const { whatsapp, twilioNumber } = req.body;
 
