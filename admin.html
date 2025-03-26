@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Panel de Clientes - WhatsApp Bots</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f2f2f2;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      background: #fff;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    input {
+      width: 90%;
+    }
+    button {
+      padding: 6px 12px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>📋 Panel de Administración de Bots</h1>
+  <p>Ver y asignar números de Twilio a clientes registrados</p>
+
+  <table id="clientsTable">
+    <thead>
+      <tr>
+        <th>Negocio</th>
+        <th>Dueño</th>
+        <th>WhatsApp</th>
+        <th>Horario</th>
+        <th>Servicios</th>
+        <th>Número Twilio</th>
+        <th>Asignar</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function cargarClientes() {
+      const res = await fetch('https://wix-whatsapp-bot-production.up.railway.app/api/clients');
+      const clients = await res.json();
+      const tbody = document.querySelector('#clientsTable tbody');
+      tbody.innerHTML = '';
+
+      clients.forEach(client => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+          <td>${client.business_name}</td>
+          <td>${client.owner_name}</td>
+          <td>${client.whatsapp}</td>
+          <td>${client.opening_hours}</td>
+          <td>${client.services}</td>
+          <td>
+            <input type="text" value="${client.twilio_number || ''}" id="twilio-${client.id}" />
+          </td>
+          <td>
+            <button onclick="asignarNumero('${client.whatsapp}', ${client.id})">Asignar</button>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    async function asignarNumero(whatsapp, id) {
+      const input = document.getElementById(`twilio-${id}`);
+      const twilioNumber = input.value.trim();
+
+      if (!twilioNumber.startsWith('whatsapp:+')) {
+        alert('Formato inválido. Debe empezar con whatsapp:+...');
+        return;
+      }
+
+      const res = await fetch('https://wix-whatsapp-bot-production.up.railway.app/api/assign-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp, twilioNumber })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ Número asignado correctamente');
+      } else {
+        alert('❌ Error: ' + (data.error || 'Falló la asignación'));
+      }
+    }
+
+    cargarClientes();
+  </script>
+</body>
+</html>
