@@ -91,14 +91,15 @@ app.post('/api/new-bot', async (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
-  const from = req.body.From; // quién escribe
-  const to = req.body.To;     // a qué número escribieron
-  const message = req.body.Body;
+  const from = req.body.From;
+  const to = req.body.To;
+  const message = req.body.Body?.trim();
 
   console.log("📩 Mensaje:", message);
   console.log("📲 De:", from);
   console.log("📥 A:", to);
 
+  // Validación básica
   if (!to || !to.startsWith("whatsapp:")) {
     console.error("❌ Número receptor inválido:", to);
     return res.status(400).send("Número destino inválido");
@@ -111,6 +112,7 @@ app.post('/webhook', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
+      console.log("⚠️ Número aún no vinculado a ningún cliente");
       await client.messages.create({
         from: to,
         to: from,
@@ -120,6 +122,12 @@ app.post('/webhook', async (req, res) => {
     }
 
     const customer = result.rows[0];
+
+    // Control anti-mensajes tipo "OK"
+    if (message.toLowerCase() === "ok" || message.toLowerCase() === "hola") {
+      console.log("⚠️ Ignorado: mensaje de saludo o confirmación trivial");
+      return res.sendStatus(200);
+    }
 
     const prompt = `
 Eres el asistente virtual de "${customer.business_name}", un negocio que ofrece: ${customer.services}.
@@ -137,15 +145,22 @@ Mensaje del cliente:
 "${message}"
 
 Responde como si fueras parte del equipo del negocio, en un solo mensaje claro y directo.
-`;
+    `;
 
+    console.log("🧠 Enviando prompt a OpenAI...");
 
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }]
     });
 
-    const reply = completion.choices[0].message.content;
+    const reply = completion.choices[0].message.content.trim();
+
+    // Evitar respuestas tipo "Ok"
+    if (reply.toLowerCase() === "ok" || reply.toLowerCase() === "hola") {
+      console.warn("🚫 OpenAI devolvió una respuesta trivial, ignorando.");
+      return res.sendStatus(200);
+    }
 
     await client.messages.create({
       from: to,
@@ -153,7 +168,9 @@ Responde como si fueras parte del equipo del negocio, en un solo mensaje claro y
       body: reply
     });
 
+    console.log("✅ Respuesta enviada con éxito");
     res.sendStatus(200);
+
   } catch (err) {
     console.error("❌ Error en webhook dinámico:", err);
     res.sendStatus(500);
