@@ -29,32 +29,67 @@
       border: none;
       cursor: pointer;
     }
-    button:disabled {
-      background: #aaa;
-      cursor: not-allowed;
+    #loginBox {
+      max-width: 300px;
+      margin: 100px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px #ccc;
+    }
+    #panel {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>📋 Panel de Administración de Bots</h1>
-  <p>Ver y asignar números de Twilio a clientes registrados</p>
 
-  <table id="clientsTable">
-    <thead>
-      <tr>
-        <th>Negocio</th>
-        <th>Dueño</th>
-        <th>WhatsApp</th>
-        <th>Horario</th>
-        <th>Servicios</th>
-        <th>Número Twilio</th>
-        <th>Asignar</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <!-- LOGIN -->
+  <div id="loginBox">
+    <h2>🔐 Acceso al Panel</h2>
+    <input type="text" id="username" placeholder="Usuario" /><br /><br />
+    <input type="password" id="password" placeholder="Contraseña" /><br /><br />
+    <button onclick="login()">Entrar</button>
+    <p id="loginError" style="color: red; display: none;">Usuario o contraseña incorrectos</p>
+  </div>
+
+  <!-- PANEL -->
+  <div id="panel">
+    <h1>📋 Panel de Administración de Bots</h1>
+    <p>Ver y asignar números de Twilio a clientes registrados</p>
+
+    <table id="clientsTable">
+      <thead>
+        <tr>
+          <th>Negocio</th>
+          <th>Dueño</th>
+          <th>WhatsApp</th>
+          <th>Horario</th>
+          <th>Servicios</th>
+          <th>Número Twilio</th>
+          <th>Asignar</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <script>
+    const USER = 'Oskach';
+    const PASS = 'L.r14066719';
+
+    function login() {
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      if (u === USER && p === PASS) {
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('panel').style.display = 'block';
+        cargarClientes();
+      } else {
+        document.getElementById('loginError').style.display = 'block';
+      }
+    }
+
     async function cargarClientes() {
       const res = await fetch('https://wix-whatsapp-bot-production.up.railway.app/api/clients');
       const clients = await res.json();
@@ -104,8 +139,6 @@
         alert('❌ Error: ' + (data.error || 'Falló la asignación'));
       }
     }
-
-    cargarClientes();
   </script>
 </body>
 </html>
