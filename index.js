@@ -156,18 +156,20 @@ app.post('/webhook', async (req, res) => {
 
     let reply = completion.choices[0].message.content.trim();
 
-    // Limpiar basura inicial como "ok", "hola", saltos de línea
+    // ⚠️ Dividir respuesta en partes si hay doble salto de línea
+    const replyParts = reply.split(/\n{2,}/);
+    reply = replyParts[0].trim();  // usar solo la primera parte
+
+    // Limpiar respuestas que empiezan con OK o Hola
     reply = reply.replace(/^ok[\.\!\s\n]*/i, "");
     reply = reply.replace(/^hola[\.\!\s\n]*/i, "");
-    reply = reply.replace(/^\s*\n+/, "");
     reply = reply.trim();
 
-    // Evitar enviar mensajes vacíos o inválidos
+    // Evitar mensajes vacíos
     if (!reply || reply.length < 3) {
       console.warn("⚠️ OpenAI devolvió una respuesta vacía o inválida");
       return res.sendStatus(200);
     }
-
     await client.messages.create({
       from: to,
       to: from,
