@@ -4,7 +4,8 @@ import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import twilio from 'twilio';
 import pkg from 'pg';
-import { twiml as TwilioTwiml } from 'twilio';
+import pkg from 'twilio';
+const { twiml: TwilioTwiml } = pkg;
 
 const { Pool } = pkg;
 
