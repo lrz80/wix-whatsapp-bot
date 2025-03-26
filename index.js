@@ -148,6 +148,39 @@ Responde al cliente: "${message}"
     res.sendStatus(500);
   }
 });
+app.get('/api/clients', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM clients ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error al obtener clientes:", err);
+    res.status(500).json({ error: 'Error al obtener clientes' });
+  }
+});
+app.post('/api/assign-number', async (req, res) => {
+  const { whatsapp, twilioNumber } = req.body;
 
+  if (!whatsapp || !twilioNumber) {
+    return res.status(400).json({ error: 'Falta el número de WhatsApp o Twilio' });
+  }
+
+  try {
+    const existing = await db.query('SELECT * FROM clients WHERE whatsapp = $1', [whatsapp]);
+
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    await db.query(
+      'UPDATE clients SET twilio_number = $1 WHERE whatsapp = $2',
+      [twilioNumber, whatsapp]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Error al asignar número:", err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Servidor iniciado en puerto ${PORT}`));
