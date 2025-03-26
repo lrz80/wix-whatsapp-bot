@@ -48,50 +48,37 @@ process.on('unhandledRejection', (reason, promise) => {
 app.post('/api/new-bot', async (req, res) => {
   const { businessName, ownerName, whatsappNumber, openingHours, services, twilioNumber } = req.body;
 
-  // Validación manual
-  if (!twilioNumber) {
-    return res.status(400).json({ error: 'twilio_number es obligatorio' });
-  }
-
   try {
-    const existingByPhone = await db.query(
+    const existing = await db.query(
       'SELECT * FROM clients WHERE whatsapp = $1',
       [whatsappNumber]
     );
 
-    const existingTwilio = await db.query(
-      'SELECT * FROM clients WHERE twilio_number = $1',
-      [twilioNumber]
-    );
-
-    if (
-      existingTwilio.rows.length > 0 &&
-      existingTwilio.rows[0].whatsapp !== whatsappNumber
-    ) {
-      return res.status(400).json({ error: 'Este número de Twilio ya está asignado a otro cliente.' });
-    }
-
-    if (existingByPhone.rows.length > 0) {
+    if (existing.rows.length > 0) {
       await db.query(
         `UPDATE clients SET
           business_name = $1,
           owner_name = $2,
           opening_hours = $3,
-          services = $4,
-          twilio_number = $5
-        WHERE whatsapp = $6`,
-        [businessName, ownerName, openingHours, services, twilioNumber, whatsappNumber]
+          services = $4
+          ${twilioNumber ? ', twilio_number = $5' : ''}
+        WHERE whatsapp = $${twilioNumber ? 6 : 5}`,
+        twilioNumber
+          ? [businessName, ownerName, openingHours, services, twilioNumber, whatsappNumber]
+          : [businessName, ownerName, openingHours, services, whatsappNumber]
       );
     } else {
       await db.query(
-        `INSERT INTO clients (whatsapp, business_name, owner_name, opening_hours, services, twilio_number)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [whatsappNumber, businessName, ownerName, openingHours, services, twilioNumber]
+        `INSERT INTO clients (whatsapp, business_name, owner_name, opening_hours, services${twilioNumber ? ', twilio_number' : ''})
+         VALUES ($1, $2, $3, $4, $5${twilioNumber ? ', $6' : ''})`,
+        twilioNumber
+          ? [whatsappNumber, businessName, ownerName, openingHours, services, twilioNumber]
+          : [whatsappNumber, businessName, ownerName, openingHours, services]
       );
     }
 
     await client.messages.create({
-      from: twilioNumber,
+      from: process.env.TWILIO_PHONE_NUMBER,
       to: `whatsapp:${whatsappNumber}`,
       body: `¡Hola ${ownerName}! Tu chatbot para ${businessName} ha sido creado.`
     });
