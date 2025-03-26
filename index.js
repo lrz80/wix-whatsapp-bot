@@ -122,12 +122,17 @@ app.post('/webhook', async (req, res) => {
     const customer = result.rows[0];
 
     const prompt = `
-Eres el chatbot del negocio "${customer.business_name}". 
-Atiendes con amabilidad, usando respuestas breves y claras.
-Horario: ${customer.opening_hours}.
-Servicios ofrecidos: ${customer.services}.
-Responde al cliente: "${message}"
-    `;
+      Actúa como el asistente virtual de "${customer.business_name}", un negocio que ofrece: ${customer.services}.
+      Tu tarea es responder preguntas de manera clara, amable y profesional.
+
+      Siempre responde en un solo mensaje, directo al punto, útil y cordial.
+
+      Horario de atención: ${customer.opening_hours}.
+
+      El cliente ha dicho: "${message}"
+
+      Redacta una respuesta útil, amable, profesional, representando al negocio.
+`  ;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
