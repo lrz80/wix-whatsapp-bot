@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import twilio from 'twilio';
 import pkg from 'pg';
+import { twiml as TwilioTwiml } from 'twilio';
 
 const { Pool } = pkg;
 
@@ -100,8 +101,8 @@ app.post('/webhook', async (req, res) => {
   console.log("📲 De:", from);
   console.log("📥 A:", to);
 
-  // Responder de inmediato a Twilio
-  res.sendStatus(200);
+  const twiml = new TwilioTwiml.MessagingResponse();
+  res.type('text/xml').send(twiml.toString());
 
   // Procesamiento diferido
   setTimeout(async () => {
