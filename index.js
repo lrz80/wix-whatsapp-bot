@@ -130,21 +130,21 @@ app.post('/webhook', async (req, res) => {
     }
 
     const prompt = `
-Eres el asistente virtual de "${customer.business_name}", un negocio que ofrece: ${customer.services}.
-Tu tarea es responder preguntas de clientes de forma educada, profesional y útil.
+    Eres el asistente virtual de "${customer.business_name}", un negocio que ofrece: ${customer.services}.
+    Tu tarea es responder preguntas de clientes de forma educada, profesional y útil.
 
-⚠️ IMPORTANTE:
-- Solo responde **una vez**
-- No saludes dos veces
-- No digas "OK" ni "Hola" innecesariamente
-- No cierres con "¿En qué más puedo ayudarte?" a menos que sea natural
+    ⚠️ IMPORTANTE:
+    - Solo responde **una vez**
+    - No saludes dos veces
+    - No digas "OK" ni "Hola" innecesariamente
+    - No cierres con "¿En qué más puedo ayudarte?" a menos que sea natural
 
-Horario del negocio: ${customer.opening_hours}.
+    Horario del negocio: ${customer.opening_hours}.
 
-Mensaje del cliente:
-"${message}"
+    Mensaje del cliente:
+    "${message}"
 
-Responde como si fueras parte del equipo del negocio, en un solo mensaje claro y directo.
+    Responde como si fueras parte del equipo del negocio, en un solo mensaje claro y directo.
     `;
 
     console.log("🧠 Enviando prompt a OpenAI...");
@@ -154,11 +154,17 @@ Responde como si fueras parte del equipo del negocio, en un solo mensaje claro y
       messages: [{ role: "user", content: prompt }]
     });
 
-    const reply = completion.choices[0].message.content.trim();
+    let reply = completion.choices[0].message.content.trim();
 
-    // Evitar respuestas tipo "Ok"
-    if (reply.toLowerCase() === "ok" || reply.toLowerCase() === "hola") {
-      console.warn("🚫 OpenAI devolvió una respuesta trivial, ignorando.");
+    // Limpiar basura inicial como "ok", "hola", saltos de línea
+    reply = reply.replace(/^ok[\.\!\s\n]*/i, "");
+    reply = reply.replace(/^hola[\.\!\s\n]*/i, "");
+    reply = reply.replace(/^\s*\n+/, "");
+    reply = reply.trim();
+
+    // Evitar enviar mensajes vacíos o inválidos
+    if (!reply || reply.length < 3) {
+      console.warn("⚠️ OpenAI devolvió una respuesta vacía o inválida");
       return res.sendStatus(200);
     }
 
@@ -167,7 +173,6 @@ Responde como si fueras parte del equipo del negocio, en un solo mensaje claro y
       to: from,
       body: reply
     });
-
     console.log("✅ Respuesta enviada con éxito");
     res.sendStatus(200);
 
