@@ -122,17 +122,23 @@ app.post('/webhook', async (req, res) => {
     const customer = result.rows[0];
 
     const prompt = `
-      Actúa como el asistente virtual de "${customer.business_name}", un negocio que ofrece: ${customer.services}.
-      Tu tarea es responder preguntas de manera clara, amable y profesional.
+Eres el asistente virtual de "${customer.business_name}", un negocio que ofrece: ${customer.services}.
+Tu tarea es responder preguntas de clientes de forma educada, profesional y útil.
 
-      Siempre responde en un solo mensaje, directo al punto, útil y cordial.
+⚠️ IMPORTANTE:
+- Solo responde **una vez**
+- No saludes dos veces
+- No digas "OK" ni "Hola" innecesariamente
+- No cierres con "¿En qué más puedo ayudarte?" a menos que sea natural
 
-      Horario de atención: ${customer.opening_hours}.
+Horario del negocio: ${customer.opening_hours}.
 
-      El cliente ha dicho: "${message}"
+Mensaje del cliente:
+"${message}"
 
-      Redacta una respuesta útil, amable, profesional, representando al negocio.
-`  ;
+Responde como si fueras parte del equipo del negocio, en un solo mensaje claro y directo.
+`;
+
 
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
