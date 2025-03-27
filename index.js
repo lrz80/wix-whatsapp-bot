@@ -207,5 +207,14 @@ app.post('/api/assign-number', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+app.get('/api/clients', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM clients ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error al obtener clientes:", err);
+    res.status(500).json({ error: 'Error al obtener clientes' });
+  }
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Servidor iniciado en puerto ${PORT}`));
