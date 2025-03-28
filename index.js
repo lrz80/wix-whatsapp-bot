@@ -258,14 +258,13 @@ app.post('/webhook', async (req, res) => {
 
       // Detectar y eliminar contacto si no hay intención de compra
       if (!isReadyToBuy(message)) {
-        // Elimina cualquier mención al email y/o WhatsApp si vino del modelo
         const contactoRegex = isMsgEnglish
-        ? /for more information[\s\S]*?(\n|\r|$)/i
-        : /para más información[\s\S]*?(\n|\r|$)/i;
+          ? /for more information[\s\S]*?(\n|\r|$)/i
+          : /para más información[\s\S]*?(\n|\r|$)/i;
 
         reply = reply.replace(contactoRegex, "").trim();
-        
-        // Eliminar repeticiones o signos sueltos al final
+
+        // Eliminar signos sueltos al final
         reply = reply.replace(/[,\.!]+$/, "").trim();
       }
 
@@ -280,47 +279,33 @@ app.post('/webhook', async (req, res) => {
           : `¡Hola! 👋 Bienvenido(a) a ${customer.business_name}. ¿Cómo puedo ayudarte hoy?`;
       }
 
-      // Si el mensaje es un agradecimiento, responder con algo corto y amable
+      // Si el mensaje es un agradecimiento
       if (isGratitudeMessage(message)) {
         reply = isMsgEnglish
           ? "You're welcome! 😊 Let me know if you need anything else."
           : "¡Con gusto! 😊 Si necesitas algo más, aquí estaré.";
       }
 
+      // Eliminar saludos si NO es el primer mensaje
       if (!isFirstMessage) {
-        // Elimina "hola", "hola!", "¡hola!", etc. al principio
         reply = reply.replace(/^(\s*[¡!]?\s*hola[¡!\.,]?\s*)/i, "");
         reply = reply.replace(/^(\s*buenas\s(noches|tardes|días)[\.,!\s]*)/i, "");
       }
 
-      // Limpieza de comas o signos solitarios
+      // Limpieza de comas o signos solitarios al inicio
       reply = reply.replace(/^(\s*[,\.!])+\s*/g, "");
 
-      // Capitaliza primera letra
+      // Capitalizar primera letra
       if (reply.length > 0) {
         reply = reply[0].toUpperCase() + reply.slice(1);
       }
 
-      reply = reply.trim();
-
-      // Validar contenido
-      if (!reply || reply.length < 3) {
-        console.warn("⚠️ Respuesta vacía o inválida");
-        return;
-      }
-
-      // Capitaliza la primera letra
-      if (reply.length > 0) {
-        reply = reply[0].toUpperCase() + reply.slice(1);
-      }
-
-      reply = reply.trim();
-
-      // Corregir cortes raros como "¡Gracias" mal terminado
+      // Corregir cortes como "¡Gracias" sin cerrar
       reply = reply.replace(/\b¡Gracias\b\.?$/, "").trim();
 
-      // Agregar punto final si no hay puntuación
-      if (!/[.!?]$/.test(reply)) {
+      // Agregar punto final si no termina en puntuación o emoji
+      const endsWithPunctuationOrEmoji = /[\p{Emoji}\.\!\?]$/u;
+      if (!endsWithPunctuationOrEmoji.test(reply)) {
         reply += ".";
       }
 
@@ -329,6 +314,7 @@ app.post('/webhook', async (req, res) => {
         console.warn("⚠️ Respuesta vacía o inválida");
         return;
       }
+
       console.log("🧾 Enviando solo esto a Twilio:", reply);
 
       await client.messages.create({
@@ -336,12 +322,6 @@ app.post('/webhook', async (req, res) => {
         to: from,
         body: reply
       });
-
-    } catch (err) {
-      console.error("❌ Error procesando mensaje (diferido):", err);
-    }
-  }, 0);
-});
 
 app.post('/api/assign-number', async (req, res) => {
   const { whatsapp, twilioNumber } = req.body;
