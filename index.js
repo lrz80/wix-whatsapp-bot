@@ -118,6 +118,28 @@ app.post('/webhook', async (req, res) => {
       ];
       return genericPhrases.some(phrase => normalized.includes(phrase));
     }
+    function isReadyToBuy(message) {
+      const normalized = message.toLowerCase();
+
+      const buyingPhrases = [
+        "quiero empezar",
+        "quiero agendar",
+        "quiero inscribirme",
+        "me quiero inscribir",
+        "estoy lista para empezar",
+        "estoy listo para empezar",
+        "cómo me registro",
+        "cómo empiezo",
+        "cómo pago",
+        "dónde pago",
+        "quiero pagar",
+        "quiero registrarme",
+        "me interesa iniciar",
+        "necesito comenzar"
+      ];
+
+      return buyingPhrases.some(phrase => normalized.includes(phrase));
+    }
 
     try {
       let reply = ""; // IMPORTANTE: inicializamos reply
@@ -197,6 +219,11 @@ app.post('/webhook', async (req, res) => {
       });
 
       reply = completion.choices[0].message.content.trim();
+
+      // Detectar intención de compra y agregar contacto al final
+      if (isReadyToBuy(message)) {
+        reply += `\n\nPara más información, puedes contactarnos al correo ${customer.business_email} o por WhatsApp al ${customer.whatsapp}`;
+      }
 
       // Si hay múltiples párrafos, tomar solo el primero
       const replyParts = reply.split(/\n{2,}/);
