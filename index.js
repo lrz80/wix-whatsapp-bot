@@ -178,7 +178,7 @@ app.post('/webhook', async (req, res) => {
 
       ⚠️ Instrucciones importantes:
       - Responde en un solo mensaje
-      - No incluyas saludos como "Hola", "OK", "Hola buenas noches", etc.
+      - Solo incluye saludos como "Hola", "Hola Buenas noches" en el primer mensaje.
       - Sé directo pero amable
       - Solo menciona el horario si es relevante
       - Utiliza únicamente la información proporcionada en los servicios
