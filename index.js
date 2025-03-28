@@ -218,8 +218,9 @@ app.post('/webhook', async (req, res) => {
       - Be direct but friendly
       - Only mention the business hours if relevant
       - Use only the information provided in the services
-      - If the customer says something general like "I want more information", "I'm interested", etc., do NOT answer everything. Instead, reply with:
-        "What would you like to know? For example: prices, what's included, duration, payment methods, etc."
+      - If the customer sends a general message like "I want more information", "I'm interested", or "I'd like to know more", etc., avoid providing all the details at once.
+        Instead, respond with a helpful and welcoming question that encourages the customer to be more specific, such as:
+        "Of course, I'd be happy to help. What would you like to know more about? For example: prices, program details, duration, or payment methods."
       - Only include this at the end **if the customer wants to register, book an appointment, or speak to someone**:
         "For more information, you can contact us at ${customer.business_email} or via WhatsApp at ${customer.whatsapp}"
       ` : `
@@ -238,8 +239,9 @@ app.post('/webhook', async (req, res) => {
       - Sé directo pero amable
       - Solo menciona el horario si es relevante
       - Usa únicamente la información proporcionada en los servicios
-      - Si el cliente dice algo muy general como "quiero más información", "me interesa", etc., NO respondas todo. En su lugar, responde con:
-        "¿Qué te gustaría saber? Por ejemplo: precios, qué incluye, duración, formas de pago, etc."
+      - Si el cliente envía un mensaje general como "quiero más información", "me interesa", o "quisiera saber más", etc., no proporciones toda la información de inmediato.
+        En su lugar, responde con una frase que demuestre disposición a ayudar y que oriente al cliente a especificar su interés, como:
+        "Claro, estaré encantado(a) de ayudarte. ¿Qué te gustaría saber con más detalle? Por ejemplo: precios, duración, qué incluye o métodos de pago."
       - Solo incluye esta línea al final si el cliente desea inscribirse, agendar una cita o hablar con alguien:
         "Para más información, puedes contactarnos al correo ${customer.business_email} o por WhatsApp al ${customer.whatsapp}"
       `;
