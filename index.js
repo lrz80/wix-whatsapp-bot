@@ -48,7 +48,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 app.post('/api/new-bot', async (req, res) => {
-  const { businessName, ownerName, whatsappNumber, openingHours, services, twilioNumber } = req.body;
+  const { businessName, ownerName, whatsappNumber, openingHours, services, businessemail, twilioNumber } = req.body;
 
   try {
     const existing = await db.query(
@@ -62,20 +62,21 @@ app.post('/api/new-bot', async (req, res) => {
           business_name = $1,
           owner_name = $2,
           opening_hours = $3,
-          services = $4
-          ${twilioNumber ? ', twilio_number = $5' : ''}
+          business_email = $4,
+          services = $5
+          ${twilioNumber ? ', twilio_number = $6' : ''}
         WHERE whatsapp = $${twilioNumber ? 6 : 5}`,
         twilioNumber
-          ? [businessName, ownerName, openingHours, services, twilioNumber, whatsappNumber]
-          : [businessName, ownerName, openingHours, services, whatsappNumber]
+          ? [businessName, ownerName, openingHours, services, businessEmail, twilioNumber, whatsappNumber]
+          : [businessName, ownerName, openingHours, services, businessEmail, whatsappNumber]
       );
     } else {
       await db.query(
-        `INSERT INTO clients (whatsapp, business_name, owner_name, opening_hours, services${twilioNumber ? ', twilio_number' : ''})
+        `INSERT INTO clients (whatsapp, business_name, business_email, owner_name, opening_hours, services${twilioNumber ? ', twilio_number' : ''})
          VALUES ($1, $2, $3, $4, $5${twilioNumber ? ', $6' : ''})`,
         twilioNumber
-          ? [whatsappNumber, businessName, ownerName, openingHours, services, twilioNumber]
-          : [whatsappNumber, businessName, ownerName, openingHours, services]
+          ? [whatsappNumber, businessName, ownerName, openingHours, businessEmail, services, twilioNumber]
+          : [whatsappNumber, businessName, ownerName, openingHours, businessEmail, services]
       );
     }
 
@@ -142,8 +143,19 @@ app.post('/webhook', async (req, res) => {
 
       const customer = result.rows[0];
 
+      // Seguridad: validar que los datos clave existen
+      if (!customer.business_email || !customer.whatsapp || !customer.business_name || !customer.services) {
+        console.warn("⚠️ Cliente con datos incompletos:", customer);
+        await client.messages.create({
+          from: to,
+          to: from,
+          body: "Este número está activo, pero no tiene toda la información configurada aún. Por favor, contacta al administrador."
+        });
+        return;
+      }
+
       // Seguridad: valores por defecto si faltan
-      if (!customer.email) customer.email = "soporte@tuchatbot.com";
+      if (!customer.business_email) customer.business_email = "soporte@tuchatbot.com";
       if (!customer.whatsapp) customer.whatsapp = "+1XXXXXXXXXX";
 
       // Detectar si es el primer mensaje (saludo breve)
@@ -176,7 +188,7 @@ app.post('/webhook', async (req, res) => {
       - Si el cliente dice algo muy general como "quiero más información", "me interesa", "dame info", etc., NO respondas con toda la información de inmediato. En su lugar, responde algo como:
         "¿Qué te gustaría saber? Por ejemplo: precios, qué incluye, duración, formas de pago, etc."
       - Solo incluye esta línea al final si el cliente desea inscribirse, agendar una cita o hablar con alguien:
-        "Para más información, puedes contactarnos al correo ${businessemailInput} o por WhatsApp al ${phoneInput}"
+        "Para más información, puedes contactarnos al correo ${customer.business_email} o por WhatsApp al ${customer.whatsapp}"
 `      ;
 
       const completion = await openai.chat.completions.create({
