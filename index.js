@@ -249,9 +249,6 @@ app.post('/webhook', async (req, res) => {
       if (!isReadyToBuy(message) && reply.includes(customer.business_email)) {
         reply = reply.replace(/para más información.*?${customer.whatsapp}/i, "").trim();
       }
-
-    }
-
       // Si hay múltiples párrafos, tomar solo el primero
       const replyParts = reply.split(/\n{2,}/);
       reply = replyParts[0].trim();
