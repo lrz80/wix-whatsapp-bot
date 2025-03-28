@@ -105,32 +105,22 @@ app.post('/webhook', async (req, res) => {
   const twiml = new TwilioTwiml.MessagingResponse();
   res.type('text/xml').send(twiml.toString());
 
-  // Procesamiento diferido
+    // Procesamiento diferido
   setTimeout(async () => {
-  function isGenericInfoRequest(message) {
-    const normalized = message.toLowerCase().trim();
-
-    const genericPhrases = [
-      "quiero información",
-      "quiero info",
-      "dame información",
-      "dame info",
-      "me interesa",
-      "más info",
-      "información por favor",
-      "necesito info",
-      "envíame información",
-      "quiero saber más",
-      "quiero detalles",
-      "puedes darme info",
-      "cuéntame más",
-      "necesito más información"
-    ];
-
-    return genericPhrases.some(phrase => normalized.includes(phrase));
-  }
+    function isGenericInfoRequest(message) {
+      const normalized = message.toLowerCase().trim();
+      const genericPhrases = [
+        "quiero información", "quiero info", "dame información", "dame info", "me interesa",
+        "más info", "información por favor", "necesito info", "envíame información",
+        "quiero saber más", "quiero detalles", "puedes darme info", "cuéntame más",
+        "necesito más información"
+      ];
+      return genericPhrases.some(phrase => normalized.includes(phrase));
+    }
 
     try {
+      let reply = ""; // IMPORTANTE: inicializamos reply
+
       if (!to || !to.startsWith("whatsapp:")) {
         console.error("❌ Número receptor inválido:", to);
         return;
@@ -152,17 +142,18 @@ app.post('/webhook', async (req, res) => {
 
       const customer = result.rows[0];
 
+      // Seguridad: valores por defecto si faltan
+      if (!customer.email) customer.email = "soporte@tuchatbot.com";
+      if (!customer.whatsapp) customer.whatsapp = "+1XXXXXXXXXX";
+
+      // Detectar si es el primer mensaje (saludo breve)
+      const isFirstMessage = /^(hola|buenas\s(noches|tardes|días)?)/i.test(message.trim());
+
+      // Detectar si el mensaje es demasiado general
       if (isGenericInfoRequest(message)) {
         reply = "¿Qué te gustaría saber? Por ejemplo: precios, qué incluye, duración, formas de pago, etc.";
-
-        // Enviar esa respuesta directamente a WhatsApp
-        await client.messages.create({
-          from: to,
-          to: from,
-          body: reply
-        });
-
-        return; // detener el flujo, no llamar a OpenAI
+        await client.messages.create({ from: to, to: from, body: reply });
+        return;
       }
 
       const prompt = `
@@ -185,7 +176,7 @@ app.post('/webhook', async (req, res) => {
       - Si el cliente dice algo muy general como "quiero más información", "me interesa", "dame info", etc., NO respondas con toda la información de inmediato. En su lugar, responde algo como:
         "¿Qué te gustaría saber? Por ejemplo: precios, qué incluye, duración, formas de pago, etc."
       - Solo incluye esta línea al final si el cliente desea inscribirse, agendar una cita o hablar con alguien:
-        "Para más información, puedes contactarnos al correo ${customer.email} o por WhatsApp al ${customer.whatsapp}"
+        "Para más información, puedes contactarnos al correo ${businessemailInput} o por WhatsApp al ${phoneInput}"
 `      ;
 
       const completion = await openai.chat.completions.create({
@@ -193,33 +184,29 @@ app.post('/webhook', async (req, res) => {
         messages: [{ role: "user", content: prompt }]
       });
 
-      // Define si es el primer mensaje (puedes ajustar esta lógica luego)
-      const isFirstMessage = /^(hola|buenas\s(noches|tardes|días)?)/i.test(message.trim());
+      reply = completion.choices[0].message.content.trim();
 
-      // Obtiene respuesta del modelo
-      let reply = completion.choices[0].message.content.trim();
-
-      // Si hay múltiples párrafos, tomamos solo el primero
+      // Si hay múltiples párrafos, tomar solo el primero
       const replyParts = reply.split(/\n{2,}/);
       reply = replyParts[0].trim();
 
-      // Limpieza de saludos (solo si no es el primer mensaje)
+      // Limpieza de saludos (solo si NO es primer mensaje)
       if (!isFirstMessage) {
         reply = reply.replace(/^(hola|ok)[\.,!\s]*/i, "");
         reply = reply.replace(/^buenas\s(noches|tardes|días)[\.,!\s]*/i, "");
       }
 
-      // Limpia comas o signos sueltos al inicio
+      // Limpieza de comas o signos solitarios
       reply = reply.replace(/^(\s*[,\.!])+\s*/g, "");
 
-      // Capitaliza la primera letra
+      // Capitaliza primera letra
       if (reply.length > 0) {
         reply = reply[0].toUpperCase() + reply.slice(1);
       }
 
       reply = reply.trim();
 
-      // Verifica que la respuesta no esté vacía
+      // Validar contenido
       if (!reply || reply.length < 3) {
         console.warn("⚠️ Respuesta vacía o inválida");
         return;
@@ -237,7 +224,6 @@ app.post('/webhook', async (req, res) => {
       console.error("❌ Error procesando mensaje (diferido):", err);
     }
   }, 0);
-});
 
 app.post('/api/assign-number', async (req, res) => {
   const { whatsapp, twilioNumber } = req.body;
