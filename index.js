@@ -243,14 +243,14 @@ app.post('/webhook', async (req, res) => {
       reply = completion.choices[0].message.content.trim();
 
       // Agregar contacto solo si el modelo NO lo agregó ya
-      if (isReadyToBuy(message)) {
-        const contactoTexto = `Para más información, puedes contactarnos al correo ${customer.business_email} o por WhatsApp al ${customer.whatsapp}`;
-  
-        // Solo agregar si no está ya incluido
-        if (!reply.includes(customer.business_email) && !reply.includes(customer.whatsapp)) {
-          reply += `\n\n${contactoTexto}`;
-        }
+      const contactoTexto = `${customer.business_email} ${customer.whatsapp}`;
+
+      // Si NO hay intención de compra y el mensaje ya contiene contacto → eliminarlo
+      if (!isReadyToBuy(message) && reply.includes(customer.business_email)) {
+        reply = reply.replace(/para más información.*?${customer.whatsapp}/i, "").trim();
       }
+
+    }
 
       // Si hay múltiples párrafos, tomar solo el primero
       const replyParts = reply.split(/\n{2,}/);
