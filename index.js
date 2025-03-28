@@ -224,6 +224,7 @@ app.post('/webhook', async (req, res) => {
       console.error("❌ Error procesando mensaje (diferido):", err);
     }
   }, 0);
+});
 
 app.post('/api/assign-number', async (req, res) => {
   const { whatsapp, twilioNumber } = req.body;
