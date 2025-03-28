@@ -118,6 +118,15 @@ app.post('/webhook', async (req, res) => {
       ];
       return genericPhrases.some(phrase => normalized.includes(phrase));
     }
+    function isGratitudeMessage(message) {
+      const normalized = message.toLowerCase();
+      const gratitudePhrases = [
+        "gracias", "muchas gracias", "mil gracias",
+        "thank you", "thanks", "thanks a lot", "thank u"
+      ];
+      return gratitudePhrases.some(phrase => normalized.includes(phrase));
+    }
+
     function isReadyToBuy(message) {
       const normalized = message.toLowerCase();
 
@@ -156,7 +165,7 @@ app.post('/webhook', async (req, res) => {
       }
 
       const customer = result.rows[0];
-
+    
       // Seguridad: validar que los datos clave existen
       if (!customer.business_email || !customer.whatsapp || !customer.business_name || !customer.services) {
         console.warn("⚠️ Cliente con datos incompletos:", customer);
@@ -261,6 +270,20 @@ app.post('/webhook', async (req, res) => {
       // Si hay múltiples párrafos, tomar solo el primero
       const replyParts = reply.split(/\n{2,}/);
       reply = replyParts[0].trim();
+
+      // Si es un primer saludo, personalizar respuesta según idioma
+      if (isFirstMessage) {
+        reply = isMsgEnglish
+          ? `Hello! 👋 Welcome to ${customer.business_name}. How can I assist you today?`
+          : `¡Hola! 👋 Bienvenido(a) a ${customer.business_name}. ¿Cómo puedo ayudarte hoy?`;
+      }
+
+      // Si el mensaje es un agradecimiento, responder con algo corto y amable
+      if (isGratitudeMessage(message)) {
+        reply = isMsgEnglish
+          ? "You're welcome! 😊 Let me know if you need anything else."
+          : "¡Con gusto! 😊 Si necesitas algo más, aquí estaré.";
+      }
 
       // Limpieza de saludos (solo si NO es primer mensaje)
       if (!isFirstMessage) {
