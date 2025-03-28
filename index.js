@@ -317,14 +317,17 @@ app.post('/webhook', async (req, res) => {
 
       console.log("🧾 Enviando solo esto a Twilio:", reply);
 
-      await client.messages.create({
-        from: to,
-        to: from,
-        body: reply
-      }); 
-     } 
-  }, 0);
-});
+            await client.messages.create({
+              from: to,
+              to: from,
+              body: reply
+            });
+
+          } catch (err) {
+            console.error("❌ Error procesando mensaje (diferido):", err);
+          }
+        }, 0); // cerrar setTimeout
+      }); // cerrar app.post('/webhook'...)
 
 app.post('/api/assign-number', async (req, res) => {
   const { whatsapp, twilioNumber } = req.body;
