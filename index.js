@@ -107,6 +107,29 @@ app.post('/webhook', async (req, res) => {
 
   // Procesamiento diferido
   setTimeout(async () => {
+  function isGenericInfoRequest(message) {
+    const normalized = message.toLowerCase().trim();
+
+    const genericPhrases = [
+      "quiero información",
+      "quiero info",
+      "dame información",
+      "dame info",
+      "me interesa",
+      "más info",
+      "información por favor",
+      "necesito info",
+      "envíame información",
+      "quiero saber más",
+      "quiero detalles",
+      "puedes darme info",
+      "cuéntame más",
+      "necesito más información"
+    ];
+
+    return genericPhrases.some(phrase => normalized.includes(phrase));
+  }
+
     try {
       if (!to || !to.startsWith("whatsapp:")) {
         console.error("❌ Número receptor inválido:", to);
@@ -129,6 +152,19 @@ app.post('/webhook', async (req, res) => {
 
       const customer = result.rows[0];
 
+      if (isGenericInfoRequest(message)) {
+        reply = "¿Qué te gustaría saber? Por ejemplo: precios, qué incluye, duración, formas de pago, etc.";
+
+        // Enviar esa respuesta directamente a WhatsApp
+        await client.messages.create({
+          from: to,
+          to: from,
+          body: reply
+        });
+
+        return; // detener el flujo, no llamar a OpenAI
+      }
+
       const prompt = `
       Eres el asistente virtual del negocio "${customer.business_name}".
 
@@ -141,11 +177,14 @@ app.post('/webhook', async (req, res) => {
       "${message}"
 
       ⚠️ Instrucciones importantes:
+      - Responde en un solo mensaje
+      - No incluyas saludos como "Hola", "OK", "Hola buenas noches", etc.
       - Sé directo pero amable
       - Solo menciona el horario si es relevante
       - Utiliza únicamente la información proporcionada en los servicios
-      - No inventes servicios, precios o promociones que no estén detallados
-      - Solo incluye esta línea al final si el cliente desea inscribirse, agendar una cita o hablar con alguien: 
+      - Si el cliente dice algo muy general como "quiero más información", "me interesa", "dame info", etc., NO respondas con toda la información de inmediato. En su lugar, responde algo como:
+        "¿Qué te gustaría saber? Por ejemplo: precios, qué incluye, duración, formas de pago, etc."
+      - Solo incluye esta línea al final si el cliente desea inscribirse, agendar una cita o hablar con alguien:
         "Para más información, puedes contactarnos al correo ${customer.email} o por WhatsApp al ${customer.whatsapp}"
 `      ;
 
