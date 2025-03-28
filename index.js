@@ -309,6 +309,26 @@ app.post('/webhook', async (req, res) => {
         return;
       }
 
+      // Capitaliza la primera letra
+      if (reply.length > 0) {
+        reply = reply[0].toUpperCase() + reply.slice(1);
+      }
+
+      reply = reply.trim();
+
+      // Corregir cortes raros como "¡Gracias" mal terminado
+      reply = reply.replace(/\b¡Gracias\b\.?$/, "").trim();
+
+      // Agregar punto final si no hay puntuación
+      if (!/[.!?]$/.test(reply)) {
+        reply += ".";
+      }
+
+      // Verifica que la respuesta no esté vacía
+      if (!reply || reply.length < 3) {
+        console.warn("⚠️ Respuesta vacía o inválida");
+        return;
+      }
       console.log("🧾 Enviando solo esto a Twilio:", reply);
 
       await client.messages.create({
