@@ -121,21 +121,16 @@ app.post('/webhook', async (req, res) => {
     function isReadyToBuy(message) {
       const normalized = message.toLowerCase();
 
-      // ⚠️ Frases que parecen de interés general, pero NO indican acción
-      const softIntents = [
-        "i need more info", "i need more information", "tell me more",
-        "give me details", "can you explain", "i'm interested", "i want info"
+      // Frases claras de intención de compra
+      const buyingIntents = [
+        "quiero pagar", "dónde pago", "donde pago",
+        "quiero registrarme", "quiero inscribirme",
+        "estoy lista para comenzar", "estoy listo para comenzar",
+        "cómo empiezo", "como empiezo", "quiero empezar",
+        "quiero agendar", "quiero comenzar", "listo para empezar"
       ];
 
-      // ✅ Frases que indican decisión de compra o acción directa
-      const strongIntents = [
-        "i want to start", "i want to register", "i want to book", "i want to pay",
-        "how do i pay", "where do i pay", "how do i start", "i want to sign up",
-        "i'm ready", "i'm ready to start", "how do i begin", "how can i join"
-      ];
-
-      // Si contiene alguna frase fuerte → listo para contacto
-      return strongIntents.some(phrase => normalized.includes(phrase));
+      return buyingIntents.some(phrase => normalized.includes(phrase));
     }
 
     try {
