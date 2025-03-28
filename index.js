@@ -127,26 +127,26 @@ app.post('/webhook', async (req, res) => {
       return gratitudePhrases.some(phrase => normalized.includes(phrase));
     }
     function isAskingForEverything(message) {
-      const normalized = message.toLowerCase();
+      const normalized = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-      const phrases = [
-        "quiero toda la información",
-        "quiero toda la info",
-        "dame toda la información",
-        "dame toda la info",
+      const triggers = [
+        "quiero toda la informacion",
+        "dame toda la informacion",
         "quiero todo",
         "dame todo",
-        "mándame todo",
-        "envíame todo",
-        "puedes darme toda la información",
-        "me puedes dar toda la información",
-        "puedes enviarme toda la información",
-        "podrías darme toda la información",
-        "toda la información por favor",
-        "toda la info por favor"
+        "mandame todo",
+        "enviame todo",
+        "puedes darme toda la informacion",
+        "me puedes dar toda la informacion",
+        "puedes enviarme toda la informacion",
+        "podrias darme toda la informacion",
+        "toda la informacion por favor",
+        "toda la info por favor",
+        "necesito toda la informacion",
+        "necesito todo"
       ];
 
-      return phrases.some(p => normalized.includes(p));
+      return triggers.some(phrase => normalized.includes(phrase));
     }
 
     function isReadyToBuy(message) {
