@@ -245,10 +245,19 @@ app.post('/webhook', async (req, res) => {
       // Agregar contacto solo si el modelo NO lo agregó ya
       const contactoTexto = `${customer.business_email} ${customer.whatsapp}`;
 
-      // Si NO hay intención de compra y el mensaje ya contiene contacto → eliminarlo
-      if (!isReadyToBuy(message) && reply.includes(customer.business_email)) {
-        reply = reply.replace(/para más información.*?${customer.whatsapp}/i, "").trim();
+      // Detectar y eliminar contacto si no hay intención de compra
+      if (!isReadyToBuy(message)) {
+        // Elimina cualquier mención al email y/o WhatsApp si vino del modelo
+        const contactoRegex = isMsgEnglish
+        ? /for more information[\s\S]*?(\n|\r|$)/i
+        : /para más información[\s\S]*?(\n|\r|$)/i;
+
+        reply = reply.replace(contactoRegex, "").trim();
+        
+        // Eliminar repeticiones o signos sueltos al final
+        reply = reply.replace(/[,\.!]+$/, "").trim();
       }
+
       // Si hay múltiples párrafos, tomar solo el primero
       const replyParts = reply.split(/\n{2,}/);
       reply = replyParts[0].trim();
