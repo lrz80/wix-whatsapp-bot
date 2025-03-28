@@ -193,16 +193,33 @@ app.post('/webhook', async (req, res) => {
         messages: [{ role: "user", content: prompt }]
       });
 
+      // Define si es el primer mensaje (puedes ajustar esta lógica luego)
+      const isFirstMessage = /^(hola|buenas\s(noches|tardes|días)?)/i.test(message.trim());
+
+      // Obtiene respuesta del modelo
       let reply = completion.choices[0].message.content.trim();
 
-      // Limpiar respuesta
+      // Si hay múltiples párrafos, tomamos solo el primero
       const replyParts = reply.split(/\n{2,}/);
       reply = replyParts[0].trim();
-      reply = reply.replace(/^ok[\.\!\s\n]*/i, "");
-      reply = reply.replace(/^hola[\.\!\s\n]*/i, "");
-      reply = reply.replace(/^\s*\n+/, "");
+
+      // Limpieza de saludos (solo si no es el primer mensaje)
+      if (!isFirstMessage) {
+        reply = reply.replace(/^(hola|ok)[\.,!\s]*/i, "");
+        reply = reply.replace(/^buenas\s(noches|tardes|días)[\.,!\s]*/i, "");
+      }
+
+      // Limpia comas o signos sueltos al inicio
+      reply = reply.replace(/^(\s*[,\.!])+\s*/g, "");
+
+      // Capitaliza la primera letra
+      if (reply.length > 0) {
+        reply = reply[0].toUpperCase() + reply.slice(1);
+      }
+
       reply = reply.trim();
 
+      // Verifica que la respuesta no esté vacía
       if (!reply || reply.length < 3) {
         console.warn("⚠️ Respuesta vacía o inválida");
         return;
