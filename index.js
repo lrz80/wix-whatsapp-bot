@@ -190,7 +190,38 @@ app.post('/webhook', async (req, res) => {
         return;
       }
 
-      const prompt = `
+      function isEnglish(message) {
+        const englishKeywords = [
+          "hi", "hello", "how much", "price", "program", "english", "yes", "i want", "information", "start", "register", "book"
+        ];
+
+        const normalized = message.toLowerCase();
+        return englishKeywords.some(word => normalized.includes(word));
+      }
+
+      const isMsgEnglish = isEnglish(message);
+
+      const prompt = isMsgEnglish ? `
+      You are the virtual assistant of the business "${customer.business_name}".
+
+      This business offers the following services:
+      ${customer.services}
+
+      Business hours: ${customer.opening_hours}.
+
+      Your job is to respond to the following customer message clearly, professionally, and helpfully:
+      "${message}"
+
+      ⚠️ Important instructions:
+      - Reply in one message only
+      - Be direct but friendly
+      - Only mention the business hours if relevant
+      - Use only the information provided in the services
+      - If the customer says something general like "I want more information", "I'm interested", etc., do NOT answer everything. Instead, reply with:
+        "What would you like to know? For example: prices, what's included, duration, payment methods, etc."
+      - Only include this at the end **if the customer wants to register, book an appointment, or speak to someone**:
+        "For more information, you can contact us at ${customer.business_email} or via WhatsApp at ${customer.whatsapp}"
+      ` : `
       Eres el asistente virtual del negocio "${customer.business_name}".
 
       Este negocio ofrece los siguientes servicios:
@@ -203,15 +234,14 @@ app.post('/webhook', async (req, res) => {
 
       ⚠️ Instrucciones importantes:
       - Responde en un solo mensaje
-      - Solo incluye saludos como "Hola", "Hola Buenas noches" en el primer mensaje.
       - Sé directo pero amable
       - Solo menciona el horario si es relevante
-      - Utiliza únicamente la información proporcionada en los servicios
-      - Si el cliente dice algo muy general como "quiero más información", "me interesa", "dame info", etc., NO respondas con toda la información de inmediato. En su lugar, responde algo como:
+      - Usa únicamente la información proporcionada en los servicios
+      - Si el cliente dice algo muy general como "quiero más información", "me interesa", etc., NO respondas todo. En su lugar, responde con:
         "¿Qué te gustaría saber? Por ejemplo: precios, qué incluye, duración, formas de pago, etc."
       - Solo incluye esta línea al final si el cliente desea inscribirse, agendar una cita o hablar con alguien:
         "Para más información, puedes contactarnos al correo ${customer.business_email} o por WhatsApp al ${customer.whatsapp}"
-`      ;
+      `;
 
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
