@@ -287,10 +287,10 @@ app.post('/webhook', async (req, res) => {
           : "¡Con gusto! 😊 Si necesitas algo más, aquí estaré.";
       }
 
-      // Limpieza de saludos (solo si NO es primer mensaje)
       if (!isFirstMessage) {
-        reply = reply.replace(/^(hola|ok)[\.,!\s]*/i, "");
-        reply = reply.replace(/^buenas\s(noches|tardes|días)[\.,!\s]*/i, "");
+        // Elimina "hola", "hola!", "¡hola!", etc. al principio
+        reply = reply.replace(/^(\s*[¡!]?\s*hola[¡!\.,]?\s*)/i, "");
+        reply = reply.replace(/^(\s*buenas\s(noches|tardes|días)[\.,!\s]*)/i, "");
       }
 
       // Limpieza de comas o signos solitarios
