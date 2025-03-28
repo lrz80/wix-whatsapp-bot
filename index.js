@@ -304,8 +304,8 @@ app.post('/webhook', async (req, res) => {
       reply = reply.replace(/\b¡Gracias\b\.?$/, "").trim();
 
       // Agregar punto final si no termina en puntuación o emoji
-      const endsWithPunctuationOrEmoji = /[\p{Emoji}\.\!\?]$/u;
-      if (!endsWithPunctuationOrEmoji.test(reply)) {
+      const endsWithEmojiOrPunctuation = /[\u{1F300}-\u{1FAD6}\u{1F600}-\u{1F64F}\u{2700}-\u{27BF}.!?]$/u;
+      if (!endsWithEmojiOrPunctuation.test(reply)) {
         reply += ".";
       }
 
