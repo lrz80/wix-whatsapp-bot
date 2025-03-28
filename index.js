@@ -126,7 +126,20 @@ app.post('/webhook', async (req, res) => {
       ];
       return gratitudePhrases.some(phrase => normalized.includes(phrase));
     }
-
+    function isAskingForEverything(message) {
+      const normalized = message.toLowerCase();
+      const phrases = [
+        "quiero toda la información",
+        "quiero toda la info",
+        "dame toda la información",
+        "dame toda la info",
+        "quiero todo",
+        "dame todo",
+        "mándame todo",
+        "envíame todo"
+      ];
+      return phrases.some(p => normalized.includes(p));
+    }
     function isReadyToBuy(message) {
       const normalized = message.toLowerCase();
 
@@ -185,8 +198,10 @@ app.post('/webhook', async (req, res) => {
       const isFirstMessage = /^(hola|buenas\s(noches|tardes|días)?)/i.test(message.trim());
 
       // Detectar si el mensaje es demasiado general
-      if (isGenericInfoRequest(message)) {
-        reply = "¿Qué te gustaría saber? Por ejemplo: precios, qué incluye, duración, formas de pago, etc.";
+      if (isGenericInfoRequest(message) && !isAskingForEverything(message)) {
+        reply = isMsgEnglish
+          ? "What would you like to know more about? For example: prices, program details, duration, or payment methods."
+          : "¿Qué te gustaría saber con más detalle? Por ejemplo: precios, qué incluye, duración o métodos de pago.";
         await client.messages.create({ from: to, to: from, body: reply });
         return;
       }
