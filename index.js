@@ -128,6 +128,7 @@ app.post('/webhook', async (req, res) => {
     }
     function isAskingForEverything(message) {
       const normalized = message.toLowerCase();
+
       const phrases = [
         "quiero toda la información",
         "quiero toda la info",
@@ -136,10 +137,18 @@ app.post('/webhook', async (req, res) => {
         "quiero todo",
         "dame todo",
         "mándame todo",
-        "envíame todo"
+        "envíame todo",
+        "puedes darme toda la información",
+        "me puedes dar toda la información",
+        "puedes enviarme toda la información",
+        "podrías darme toda la información",
+        "toda la información por favor",
+        "toda la info por favor"
       ];
+
       return phrases.some(p => normalized.includes(p));
     }
+
     function isReadyToBuy(message) {
       const normalized = message.toLowerCase();
 
