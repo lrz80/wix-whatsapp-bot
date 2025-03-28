@@ -321,8 +321,7 @@ app.post('/webhook', async (req, res) => {
         from: to,
         to: from,
         body: reply
-      });
-    }, 0); 
+      }); 
   }); 
 app.post('/api/assign-number', async (req, res) => {
   const { whatsapp, twilioNumber } = req.body;
