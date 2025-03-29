@@ -335,11 +335,22 @@ function detectSpecificIntent(message) {
 
       function isEnglish(message) {
         const englishKeywords = [
-          "hi", "hello", "how much", "price", "program", "english", "yes", "i want", "information", "start", "register", "book"
+          "hi", "hello", "how much", "price", "program", "yes", "i want",
+          "information", "start", "register", "book", "details", "please",
+          "included", "what", "how long", "duration", "weeks"
         ];
 
         const normalized = message.toLowerCase();
-        return englishKeywords.some(word => normalized.includes(word));
+        let matchCount = 0;
+
+        for (const word of englishKeywords) {
+          if (normalized.includes(word)) {
+            matchCount++;
+          }
+        }
+
+        // Solo consideramos que es inglés si hay 2 o más coincidencias
+        return matchCount >= 2;
       }
 
       const prompt = isMsgEnglish ? `
