@@ -106,6 +106,31 @@ app.post('/webhook', async (req, res) => {
   const twiml = new TwilioTwiml.MessagingResponse();
   res.type('text/xml').send(twiml.toString());
 
+  async function sendLongMessageInChunks(to, from, text, chunkSize = 1300) {
+    const chunks = [];
+
+    while (text.length > 0) {
+      let chunk = text.slice(0, chunkSize);
+
+      // Asegura que cortamos en el último salto de línea para no romper palabras
+      const lastBreak = chunk.lastIndexOf("\n");
+      if (lastBreak > 100) {
+        chunk = chunk.slice(0, lastBreak);
+      }
+
+      chunks.push(chunk);
+      text = text.slice(chunk.length).trim();
+    }
+
+    for (const chunk of chunks) {
+      await client.messages.create({
+        from,
+        to,
+        body: chunk
+      });
+    }
+  }
+
     // Procesamiento diferido
   setTimeout(async () => {
     function isGenericInfoRequest(message) {
@@ -197,11 +222,8 @@ app.post('/webhook', async (req, res) => {
       if (isStrongInfoIntentBilingual(message)) {
         const fullInfo = customer.services;
 
-        await client.messages.create({
-          from: to,
-          to: from,
-          body: fullInfo
-        });
+        await sendLongMessageInChunks(to, from, customer.services);
+
         return;
       }
 
