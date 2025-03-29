@@ -106,30 +106,42 @@ app.post('/webhook', async (req, res) => {
   const twiml = new TwilioTwiml.MessagingResponse();
   res.type('text/xml').send(twiml.toString());
 
-  async function sendLongMessageInChunks(to, from, text, chunkSize = 1300) {
-    const chunks = [];
+async function sendLongMessageInChunks(to, from, text, chunkSize = 1500) {
+  const chunks = [];
 
-    while (text.length > 0) {
-      let chunk = text.slice(0, chunkSize);
+  while (text.length > 0) {
+    let chunk = text.slice(0, chunkSize);
 
-      // Asegura que cortamos en el último salto de línea para no romper palabras
-      const lastBreak = chunk.lastIndexOf("\n");
-      if (lastBreak > 100) {
-        chunk = chunk.slice(0, lastBreak);
-      }
-
-      chunks.push(chunk);
-      text = text.slice(chunk.length).trim();
+    // Corta por el último salto de línea si es posible
+    const lastBreak = chunk.lastIndexOf("\n");
+    if (lastBreak > 100) {
+      chunk = chunk.slice(0, lastBreak);
     }
 
-    for (const chunk of chunks) {
-      await client.messages.create({
-        from,
-        to,
-        body: chunk
-      });
-    }
+    chunks.push(chunk);
+    text = text.slice(chunk.length).trim();
   }
+
+  for (let i = 0; i < chunks.length; i++) {
+    let body = chunks[i];
+
+    // Opcional: agrega encabezado en el primer mensaje
+    if (i === 0) {
+      body = "📋 Aquí tienes toda la información solicitada:\n\n" + body;
+    }
+
+    // Opcional: agrega cierre al final
+    if (i === chunks.length - 1) {
+      body += "\n\nSi tienes alguna pregunta, estaré encantado(a) de ayudarte 😊";
+    }
+
+    await client.messages.create({
+      from,
+      to,
+      body
+    });
+  }
+}
 
     // Procesamiento diferido
   setTimeout(async () => {
