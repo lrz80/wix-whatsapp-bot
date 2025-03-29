@@ -211,7 +211,7 @@ function detectSpecificIntent(message) {
 
       const triggers = [
         // Español
-        "quiero toda la informacion", "quiero toda la info", "quiero mas informacion",
+        "quiero toda la informacion", "quiero toda la info",
         "dame toda la informacion", "dame toda la info", "quiero todo", "dame todo",
         "mandame todo", "enviame todo", "toda la informacion", "toda la info",
         "necesito toda la informacion", "necesito todo", "quiero saber todo",
