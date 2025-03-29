@@ -140,7 +140,7 @@ async function sendLongMessageInChunks(to, from, text, isEnglish = false, chunkS
     }
 
     await client.messages.create({
-      from,
+      from: `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`,
       to,
       body
     });
