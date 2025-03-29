@@ -106,13 +106,13 @@ app.post('/webhook', async (req, res) => {
   const twiml = new TwilioTwiml.MessagingResponse();
   res.type('text/xml').send(twiml.toString());
 
-async function sendLongMessageInChunks(to, from, text, chunkSize = 1500) {
+async function sendLongMessageInChunks(to, from, text, isEnglish = false, chunkSize = 1500) {
   const chunks = [];
 
   while (text.length > 0) {
     let chunk = text.slice(0, chunkSize);
 
-    // Corta por el último salto de línea si es posible
+    // Corta en el último salto de línea si es posible
     const lastBreak = chunk.lastIndexOf("\n");
     if (lastBreak > 100) {
       chunk = chunk.slice(0, lastBreak);
@@ -125,14 +125,18 @@ async function sendLongMessageInChunks(to, from, text, chunkSize = 1500) {
   for (let i = 0; i < chunks.length; i++) {
     let body = chunks[i];
 
-    // Opcional: agrega encabezado en el primer mensaje
+    // Encabezado en el primer bloque
     if (i === 0) {
-      body = "📋 Aquí tienes toda la información solicitada:\n\n" + body;
+      body = isEnglish
+        ? "📋 Here is all the information you requested:\n\n" + body
+        : "📋 Aquí tienes toda la información solicitada:\n\n" + body;
     }
 
-    // Opcional: agrega cierre al final
+    // Mensaje de cierre en el último bloque
     if (i === chunks.length - 1) {
-      body += "\n\nSi tienes alguna pregunta, estaré encantado(a) de ayudarte 😊";
+      body += isEnglish
+        ? "\n\nIf you have any questions, feel free to ask. I'm here to help 😊"
+        : "\n\nSi tienes alguna pregunta, estaré encantado(a) de ayudarte 😊";
     }
 
     await client.messages.create({
@@ -280,8 +284,7 @@ async function sendLongMessageInChunks(to, from, text, chunkSize = 1500) {
 
       // Detectar si el mensaje es demasiado general
       if (isStrongInfoIntentBilingual(message)) {
-        reply = customer.services;
-        await client.messages.create({ from: to, to: from, body: reply });
+        await sendLongMessageInChunks(to, from, customer.services, isEnglish(message));
         return;
       }
 
