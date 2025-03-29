@@ -148,6 +148,35 @@ async function sendLongMessageInChunks(to, from, text, isEnglish = false, chunkS
     });
   }
 }
+function detectSpecificIntent(message) {
+  const normalized = message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[¿?]/g, "")
+    .trim();
+
+  const priceTriggers = [
+    "precios", "cuanto cuesta", "costos", "precio", "valores",
+    "cost", "price", "how much", "rates", "pricing"
+  ];
+
+  const includeTriggers = [
+    "que incluye", "que contiene", "que ofrece", "que esta incluido",
+    "what's included", "what does it include", "included", "features", "benefits"
+  ];
+
+  const durationTriggers = [
+    "cuanto dura", "duracion", "por cuanto tiempo", "tiempo del programa",
+    "how long", "duration", "how many weeks", "program length"
+  ];
+
+  if (priceTriggers.some(p => normalized.includes(p))) return "price";
+  if (includeTriggers.some(p => normalized.includes(p))) return "includes";
+  if (durationTriggers.some(p => normalized.includes(p))) return "duration";
+
+  return null;
+}
 
     // Procesamiento diferido
   setTimeout(async () => {
@@ -238,6 +267,36 @@ async function sendLongMessageInChunks(to, from, text, isEnglish = false, chunkS
       }
 
       const customer = result.rows[0];
+
+      // Detectar si pregunta por una intención específica (precios, duración, etc.)
+      const specificIntent = detectSpecificIntent(message);
+
+      if (specificIntent === "price") {
+        const priceText = isMsgEnglish
+          ? "Our programs are priced as follows:\n\n• 4 weeks – $135\n• 8 weeks – $250\n• 12 weeks – $350\n• Nutrition-only (8 weeks) – $150"
+          : "Nuestros programas tienen los siguientes precios:\n\n• 4 semanas – $135\n• 8 semanas – $250\n• 12 semanas – $350\n• Solo nutrición (8 semanas) – $150";
+
+        await client.messages.create({ from: to, to: from, body: priceText });
+        return;
+      }
+
+      if (specificIntent === "includes") {
+        const includesText = isMsgEnglish
+          ? "The program includes:\n• Personalized macros\n• Nutrition coaching\n• Custom training plan\n• Weekly check-ins\n• Core/postpartum recovery program\n• Nutrition education modules"
+          : "El programa incluye:\n• Macros personalizados\n• Asesoría nutricional\n• Plan de entrenamiento personalizado\n• Seguimiento semanal\n• Ejercicios para core/recuperación postparto\n• Módulos educativos de nutrición";
+
+        await client.messages.create({ from: to, to: from, body: includesText });
+        return;
+      }
+
+      if (specificIntent === "duration") {
+        const durationText = isMsgEnglish
+          ? "Our programs last 4, 8, or 12 weeks. We also offer an 8-week nutrition-only option."
+          : "Nuestros programas duran 4, 8 o 12 semanas. También ofrecemos una opción de solo nutrición por 8 semanas.";
+
+        await client.messages.create({ from: to, to: from, body: durationText });
+        return;
+      }
 
       function isStrongInfoIntentBilingual(message) {
         const normalized = message
