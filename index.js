@@ -284,7 +284,7 @@ async function sendLongMessageInChunks(to, from, text, isEnglish = false, chunkS
 
       // Detectar si el mensaje es demasiado general
       if (isStrongInfoIntentBilingual(message)) {
-        await sendLongMessageInChunks(to, from, customer.services, isEnglish(message));
+        await sendLongMessageInChunks(from, to, customer.services, isEnglish(message));
         return;
       }
 
