@@ -265,6 +265,8 @@ function detectSpecificIntent(message) {
 
       const customer = result.rows[0];
 
+      const isMsgEnglish = isEnglish(message);
+
       // Detectar si pregunta por una intención específica (precios, duración, etc.)
       const specificIntent = detectSpecificIntent(message);
 
@@ -369,8 +371,6 @@ function detectSpecificIntent(message) {
         const normalized = message.toLowerCase();
         return englishKeywords.some(word => normalized.includes(word));
       }
-
-      const isMsgEnglish = isEnglish(message);
 
       const prompt = isMsgEnglish ? `
       You are the virtual assistant of the business "${customer.business_name}".
