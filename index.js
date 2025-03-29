@@ -206,27 +206,24 @@ function detectSpecificIntent(message) {
         .replace(/[¿?]/g, "")
         .trim();
 
+      // Si el mensaje es muy corto (menos de 8 palabras), lo tratamos como general
+      const isShortMessage = normalized.split(" ").length <= 8;
+
       const triggers = [
         // Español
         "quiero toda la informacion", "quiero toda la info", "quiero mas informacion",
         "dame toda la informacion", "dame toda la info", "quiero todo", "dame todo",
-        "mandame todo", "enviame todo", "puedes darme toda la informacion",
-        "me puedes dar toda la informacion", "puedes enviarme toda la informacion",
-        "podrias darme toda la informacion", "toda la informacion por favor",
-        "toda la info por favor", "necesito toda la informacion", "necesito todo",
-        "quiero saber todo", "quiero saberlo todo", "quiero informacion",
-        "me interesa saber todo", "toda la informacion", "informacion completa",
+        "mandame todo", "enviame todo", "toda la informacion", "toda la info",
+        "necesito toda la informacion", "necesito todo", "quiero saber todo",
+        "informacion completa",
 
         // Inglés
         "i want all the information", "i want all the info", "send me all the info",
-        "send me everything", "i want everything", "can you give me all the info",
-        "could you send me all the information", "can i get all the information",
-        "i'd like all the information", "i need all the info", "give me everything",
-        "i want more information", "i need more information", "please send me all info",
-        "all the information", "full information", "complete information", "everything please"
+        "send me everything", "i want everything", "all the information",
+        "full information", "complete information"
       ];
 
-      return triggers.some(phrase => normalized.includes(phrase));
+      return isShortMessage && triggers.some(trigger => normalized === trigger || normalized.includes(trigger));
     }
 
     function isReadyToBuy(message) {
