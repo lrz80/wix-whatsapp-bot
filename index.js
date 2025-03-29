@@ -93,6 +93,8 @@ app.post('/api/new-bot', async (req, res) => {
   }
 });
 
+const lastInteraction = new Map();
+
 app.post('/webhook', async (req, res) => {
   const from = req.body.From;
   const to = req.body.To;
@@ -282,6 +284,19 @@ async function sendLongMessageInChunks(to, from, text, isEnglish = false, chunkS
       // Detectar si es el primer mensaje (saludo breve)
       const isFirstMessage = /^(hola|buenas\s(noches|tardes|días)?)/i.test(message.trim());
 
+      const now = Date.now();
+      const last = lastInteraction.get(from);
+
+      // Si el último mensaje fue un saludo y fue hace menos de 60 segundos, no repetir
+      if (
+        isFirstMessage &&
+        last &&
+        last.type === "greeting" &&
+        now - last.timestamp < 60000
+      ) {
+        return; // No responder el mismo saludo tan pronto
+      }
+
       // Detectar si el mensaje es demasiado general
       if (isStrongInfoIntentBilingual(message)) {
         await sendLongMessageInChunks(from, to, customer.services, isEnglish(message));
@@ -374,6 +389,8 @@ async function sendLongMessageInChunks(to, from, text, isEnglish = false, chunkS
         reply = isMsgEnglish
           ? `Hello! 👋 Welcome to ${customer.business_name}. How can I assist you today?`
           : `¡Hola! 👋 Bienvenido(a) a ${customer.business_name}. ¿Cómo puedo ayudarte hoy?`;
+
+        lastInteraction.set(from, { type: "greeting", timestamp: now });
       }
 
       // Si el mensaje es un agradecimiento
