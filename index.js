@@ -126,12 +126,20 @@ app.post('/webhook', async (req, res) => {
       ];
       return gratitudePhrases.some(phrase => normalized.includes(phrase));
     }
-    function isAskingForEverything(message) {
-      const normalized = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    function isStrongInfoIntent(message) {
+      const normalized = message
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[¿?]/g, "")
+        .trim();
 
       const triggers = [
         "quiero toda la informacion",
+        "quiero toda la info",
+        "quiero mas informacion",
         "dame toda la informacion",
+        "dame toda la info",
         "quiero todo",
         "dame todo",
         "mandame todo",
@@ -143,7 +151,11 @@ app.post('/webhook', async (req, res) => {
         "toda la informacion por favor",
         "toda la info por favor",
         "necesito toda la informacion",
-        "necesito todo"
+        "necesito todo",
+        "quiero saber todo",
+        "quiero saberlo todo",
+        "quiero informacion",
+        "me interesa saber todo"
       ];
 
       return triggers.some(phrase => normalized.includes(phrase));
@@ -207,10 +219,8 @@ app.post('/webhook', async (req, res) => {
       const isFirstMessage = /^(hola|buenas\s(noches|tardes|días)?)/i.test(message.trim());
 
       // Detectar si el mensaje es demasiado general
-      if (isGenericInfoRequest(message) && !isAskingForEverything(message)) {
-        reply = isMsgEnglish
-          ? "What would you like to know more about? For example: prices, program details, duration, or payment methods."
-          : "¿Qué te gustaría saber con más detalle? Por ejemplo: precios, qué incluye, duración o métodos de pago.";
+      if (isStrongInfoIntent(message)) {
+        reply = customer.services;
         await client.messages.create({ from: to, to: from, body: reply });
         return;
       }
