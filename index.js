@@ -126,7 +126,7 @@ app.post('/webhook', async (req, res) => {
       ];
       return gratitudePhrases.some(phrase => normalized.includes(phrase));
     }
-    function isStrongInfoIntent(message) {
+    function isStrongInfoIntentBilingual(message) {
       const normalized = message
         .toLowerCase()
         .normalize("NFD")
@@ -135,27 +135,21 @@ app.post('/webhook', async (req, res) => {
         .trim();
 
       const triggers = [
-        "quiero toda la informacion",
-        "quiero toda la info",
-        "quiero mas informacion",
-        "dame toda la informacion",
-        "dame toda la info",
-        "quiero todo",
-        "dame todo",
-        "mandame todo",
-        "enviame todo",
-        "puedes darme toda la informacion",
-        "me puedes dar toda la informacion",
-        "puedes enviarme toda la informacion",
-        "podrias darme toda la informacion",
-        "toda la informacion por favor",
-        "toda la info por favor",
-        "necesito toda la informacion",
-        "necesito todo",
-        "quiero saber todo",
-        "quiero saberlo todo",
-        "quiero informacion",
-        "me interesa saber todo"
+        // Español
+        "quiero toda la informacion", "quiero toda la info", "quiero mas informacion",
+        "dame toda la informacion", "dame toda la info", "quiero todo", "dame todo",
+        "mandame todo", "enviame todo", "puedes darme toda la informacion",
+        "me puedes dar toda la informacion", "puedes enviarme toda la informacion",
+        "podrias darme toda la informacion", "toda la informacion por favor",
+        "toda la info por favor", "necesito toda la informacion", "necesito todo",
+        "quiero saber todo", "quiero saberlo todo", "quiero informacion", "me interesa saber todo",
+
+        // Inglés
+        "i want all the information", "i want all the info", "send me all the info",
+        "send me everything", "i want everything", "can you give me all the info",
+        "could you send me all the information", "can i get all the information",
+        "i'd like all the information", "i need all the info", "give me everything",
+        "i want more information", "i need more information", "please send me all info"
       ];
 
       return triggers.some(phrase => normalized.includes(phrase));
@@ -199,7 +193,18 @@ app.post('/webhook', async (req, res) => {
       }
 
       const customer = result.rows[0];
-    
+
+      if (isStrongInfoIntentBilingual(message)) {
+        const fullInfo = customer.services;
+
+        await client.messages.create({
+          from: to,
+          to: from,
+          body: fullInfo
+        });
+        return;
+      }
+
       // Seguridad: validar que los datos clave existen
       if (!customer.business_email || !customer.whatsapp || !customer.business_name || !customer.services) {
         console.warn("⚠️ Cliente con datos incompletos:", customer);
