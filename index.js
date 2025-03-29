@@ -267,7 +267,7 @@ app.post('/webhook', async (req, res) => {
       const isFirstMessage = /^(hola|buenas\s(noches|tardes|días)?)/i.test(message.trim());
 
       // Detectar si el mensaje es demasiado general
-      if (isStrongInfoIntent(message)) {
+      if (isStrongInfoIntentBilingual(message)) {
         reply = customer.services;
         await client.messages.create({ from: to, to: from, body: reply });
         return;
